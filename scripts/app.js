@@ -1,48 +1,75 @@
 var canvas, canvasContext;
-
-var ballX, ballY;
-
-var ballSpeedX = 5;
-var ballSpeedY = 5;
-
-var ballRadius = 10
-var aiSpeed = 4;
-
-var rightPaddleY = 250;
-var leftPaddleY = 100;
-
-var playerScore = 0;
-var aiScore = 0;
-
+var ball, player1, player2, background;
 var showingWinScreen = false;
 
-
-const PADDLE_WIDTH = 20;
-const PADDLE_HEIGHT = 100;
-const PADDLE_GAP = 10;
 const WINNING_SCORE = 3;
+const FPS = 60;
 
 window.onload = function(){
 
     canvas = document.getElementById("gameCanvas");
     canvasContext = canvas.getContext('2d');
-    ballReset();
-    var fps = 60
+    ball = new Ball(canvas, canvasContext);
+    player1 = new Paddle(canvas, canvasContext, true);
+    player2 = new Paddle(canvas, canvasContext, false);
+    background = new Background(canvas, canvasContext);
+    
     setInterval(function(){
         moveAll();
         redraw();
-    }, 1000/fps);
+    }, 1000/FPS);
 
-    canvas.addEventListener('mousedown',handleMouseClick);
+    // canvas.addEventListener('mousedown',handleMouseClick);
 
     canvas.addEventListener(
         'mousemove',
         function(evt){
             var mousePos = calculateMousePos(evt);
-            leftPaddleY = mousePos.y - (PADDLE_HEIGHT/2);
-        });
+            player1.y = mousePos.y - (player1.h/2);
+        }
+    );
 }
 
+var bouncecheck = function(){    
+
+    // top and bottom
+    if(ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height){
+        ball.ySpeed = -ball.ySpeed;
+    }
+
+    //player1
+    if(
+        ball.x - ball.radius <= player1.x + player1.w &&
+        ball.y < player1.y + player1.h &&
+        ball.y > player1.y
+    ){
+        ball.xSpeed = -ball.xSpeed
+        var deltaY = ball.y - (player1.y+player1.h/2);
+            ball.ySpeed = deltaY * 0.35
+    }
+
+    player2
+    if(
+        ball.x >= player2.x  &&
+        ball.y < player2.y + player2.h &&
+        ball.y > player2.y
+    ){
+        ball.xSpeed = -ball.xSpeed
+        var deltaY = ball.y - (player2.y+player2.h/2);
+            ball.ySpeed = deltaY * 0.35
+    }
+
+    //score
+    if(ball.x < 0 ){  
+        player2.addScore();      
+        ball.reset();
+    }
+    if(ball.x > canvas.width){  
+        player1.addScore();        
+        ball.reset();
+    }
+
+}
 
 var handleMouseClick = function(evt){
     if(showingWinScreen){
@@ -52,27 +79,18 @@ var handleMouseClick = function(evt){
     }
 }
 
-var drawNet = function(){
-    for(var i=0; i<canvas.height; i+=40){
-        colorRect(canvas.width/2-1, i, 2, 20, 'green');
-    }
-}
+// var drawNet = function(){
+//     for(var i=0; i<canvas.height; i+=40){
+//         colorRect(canvas.width/2-1, i, 2, 20, 'green');
+//     }
+// }
 
 var redraw = function(){
 
-    //background
-    colorRect(
-        0, 
-        0, 
-        canvas.width, 
-        canvas.height, 
-        'black'
-    );
-
-    
+    background.redraw();
     canvasContext.fillStyle = 'white';
-    canvasContext.fillText(playerScore, 100, 100);
-    canvasContext.fillText(aiScore, canvas.width - 100, 100);
+    canvasContext.fillText(player1.score, 100, 100);
+    canvasContext.fillText(player2.score, canvas.width - 100, 100);
 
     if(showingWinScreen){
         var message = "";
@@ -86,90 +104,24 @@ var redraw = function(){
     }
 
     //net
-    drawNet();
+    // drawNet();
 
-    //left paddle
-    colorRect(
-        PADDLE_GAP,
-        leftPaddleY,
-        PADDLE_WIDTH, 
-        PADDLE_HEIGHT, 
-        'white'
-    );
-
-    //right paddle
-    colorRect(
-        (canvas.width - PADDLE_WIDTH - PADDLE_GAP),
-        rightPaddleY,
-        PADDLE_WIDTH, 
-        PADDLE_HEIGHT, 
-        'white'
-    );
-
-    // ball
-    colorCircle(ballX, ballY, ballRadius, 0, Math.PI*2, true, 'white');
-
+  
+    player1.redraw();
+    player2.redraw();
+    ball.redraw();
 }
 
-var colorRect = function(leftX, topY, width, height, drawColor){
-    canvasContext.fillStyle = drawColor;
-    canvasContext.fillRect(leftX,topY,width, height);
-}
-
-var colorCircle = function(centerX, centerY, radius, drawColor){
-    canvasContext.fillStyle = drawColor;
-    canvasContext.beginPath();
-    canvasContext.arc(centerX, centerY, radius, 0, Math.PI*2, true);
-    canvasContext.fill();
-}
 
 var moveAll = function(){
     
-    if(showingWinScreen){return;}
-
-    bounceCheck();
-    moveAI();
-    ballX += ballSpeedX;
-    ballY += ballSpeedY;
-}
-
-var bounceCheck = function(){
-
-    //Bounce off top and bottom
-    if(ballY >= (canvas.height - ballRadius) || ballY <= 0){
-        ballSpeedY = -ballSpeedY;
-    }
-
-    //Bounce off paddles
-    if(ballX < 0 + PADDLE_GAP + PADDLE_WIDTH){
-        if(ballY > leftPaddleY && 
-            ballY < leftPaddleY + PADDLE_HEIGHT){
-            ballSpeedX = -ballSpeedX;
-            var deltaY = ballY - (leftPaddleY+PADDLE_HEIGHT/2);
-            ballSpeedY = deltaY * 0.35
-        }
-        
-    }else if(ballX > (canvas.width - (ballRadius + PADDLE_GAP + PADDLE_WIDTH))){
-
-        if(ballY > rightPaddleY && ballY < rightPaddleY + PADDLE_HEIGHT){
-            ballSpeedX = -ballSpeedX;
-            var deltaY = ballY - (rightPaddleY+PADDLE_HEIGHT/2);
-            ballSpeedY = deltaY * 0.35
-        }
-    }
-
-    // Update Scores
-    if(ballX < 0){
-        aiScore++;
-        ballReset();
-    }
-    if(ballX > canvas.width - ballRadius){
-        playerScore++;
-        ballReset();
-    }
-
     
+    bouncecheck();
+    ball.move();
+    player2.moveAI(ball.y);
+
 }
+
 
 var calculateMousePos = function(evt){
     var rect = canvas.getBoundingClientRect();
@@ -182,23 +134,4 @@ var calculateMousePos = function(evt){
     }
 }
 
-var ballReset = function(){
 
-    if(playerScore >= WINNING_SCORE ||
-    aiScore >= WINNING_SCORE){
-        showingWinScreen = true;
-    }
-    ballX = canvas.width/2;
-    ballY = canvas.height/2;
-    ballSpeedX = -ballSpeedX;
-    ballSpeedY = -ballSpeedY;
-}
-
-var moveAI = function(){
-    var rightPaddleCenter = rightPaddleY + (PADDLE_HEIGHT/2);
-    if(rightPaddleY < ballY - 35){
-        rightPaddleY += aiSpeed;
-    }else if(rightPaddleY > ballY + 35){
-        rightPaddleY -= aiSpeed;
-    }
-}
