@@ -19,7 +19,7 @@ window.onload = function(){
         redraw();
     }, 1000/FPS);
 
-    // canvas.addEventListener('mousedown',handleMouseClick);
+    canvas.addEventListener('mousedown',handleMouseClick);
 
     canvas.addEventListener(
         'mousemove',
@@ -69,21 +69,20 @@ var bouncecheck = function(){
         ball.reset();
     }
 
+    if(player1.score === WINNING_SCORE || player2.score === WINNING_SCORE){
+        showingWinScreen = true;
+    }
+
 }
 
 var handleMouseClick = function(evt){
     if(showingWinScreen){
-        playerScore = 0;
-        aiScore = 0;
+        player1.score = 0;
+        player2.score = 0;
         showingWinScreen = false;
     }
 }
 
-// var drawNet = function(){
-//     for(var i=0; i<canvas.height; i+=40){
-//         colorRect(canvas.width/2-1, i, 2, 20, 'green');
-//     }
-// }
 
 var redraw = function(){
 
@@ -94,7 +93,7 @@ var redraw = function(){
 
     if(showingWinScreen){
         var message = "";
-        if(playerScore >= WINNING_SCORE){
+        if(player1.score >= WINNING_SCORE){
             message = "Player Wins! Click To Continue";
         }else{
             message = "Computer Wins! Click To Continue";
